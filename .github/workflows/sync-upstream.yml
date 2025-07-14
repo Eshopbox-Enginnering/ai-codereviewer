@@ -1,4 +1,4 @@
-name: 🔄 Sync Fork from Upstream
+sname: 🔄 Sync Fork from Upstream
 
 on:
   schedule:
@@ -32,7 +32,7 @@ jobs:
 
       - name: Push to fork using PAT
         env:
-          PAT_PUSH_TOKEN: ${{ vars.SYNC_FORKED_REPO_VAR }}
+          PAT_PUSH_TOKEN: ${{ secrets.SYNC_FORKED_REPO }}
         run: |
           git remote set-url origin https://x-access-token:${PAT_PUSH_TOKEN}@github.com/Eshopbox-Enginnering/ai-codereviewer.git
           git push origin main
