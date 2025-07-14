@@ -1,15 +1,15 @@
 name: 🔄 Sync Fork from Upstream
 
 on:
-  # Runs every Monday at 2am UTC
   schedule:
     - cron: '0 2 * * 1'
-  # Allow manual run from the Actions tab
   workflow_dispatch:
+
+permissions:
+  contents: write  # 🔑 allows pushing
 
 jobs:
   sync:
-    name: Sync upstream/main → fork/main
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🔗 Add upstream remote and fetch
+      - name: 🔗 Add upstream and fetch
         run: |
           git remote add upstream https://github.com/villesau/ai-codereviewer.git
           git fetch upstream
@@ -27,8 +27,8 @@ jobs:
       - name: 🔁 Merge upstream/main into fork/main
         run: |
           git checkout main
-          git merge upstream/main --allow-unrelated-histories || echo "✅ No changes to merge"
+          git merge upstream/main --allow-unrelated-histories || echo "✅ Already up to date"
 
-      - name: ⬆️ Push changes back to fork
+      - name: ⬆️ Push changes to fork
         run: |
           git push origin main
