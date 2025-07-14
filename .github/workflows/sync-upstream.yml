@@ -1,4 +1,4 @@
-sname: 🔄 Sync Fork from Upstream
+name: 🔄 Sync Fork from Upstream
 
 on:
   schedule:
