@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # 🔑 allows pushing
+  contents: read
 
 jobs:
   sync:
@@ -17,18 +17,16 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🔗 Add upstream and fetch
         run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote add upstream https://github.com/villesau/ai-codereviewer.git
           git fetch upstream
-
-      - name: 🔁 Merge upstream/main into fork/main
-        run: |
           git checkout main
           git merge upstream/main --allow-unrelated-histories || echo "✅ Already up to date"
 
-      - name: ⬆️ Push changes to fork
+      - name: ⬆️ Push changes using PAT
         run: |
-          git push origin main
+          git push https://x-access-token:${{ secrets.PAT_PUSH_TOKEN }}@github.com/Eshopbox-Enginnering/ai-codereviewer.git main
