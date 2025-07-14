@@ -30,8 +30,16 @@ jobs:
           git checkout main
           git merge upstream/main --allow-unrelated-histories || echo "✅ Already up to date"
 
+      - name: Ensure PAT is available
+        run: |
+          if [ -z "${{ secrets.SYNC_FORKED_REPO }}" ]; then
+            echo "SYNC_FORKED_REPO not set"
+            exit 1
+          fi
+
       - name: Push to fork using PAT
         env:
-          PAT_PUSH_TOKEN: ${{ secrets.PAT_PUSH_TOKEN }}
+          PAT_PUSH_TOKEN: ${{ secrets.SYNC_FORKED_REPO }}
         run: |
-          git push https://x-access-token:${PAT_PUSH_TOKEN}@github.com/Eshopbox-Enginnering/ai-codereviewer.git main
+          git remote set-url origin https://x-access-token:${PAT_PUSH_TOKEN}@github.com/Eshopbox-Enginnering/ai-codereviewer.git
+          git push origin main
