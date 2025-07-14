@@ -27,6 +27,9 @@ jobs:
           git checkout main
           git merge upstream/main --allow-unrelated-histories || echo "✅ Already up to date"
 
-      - name: ⬆️ Push changes using PAT
+      - name: ⬆️ Push changes to fork using PAT
+        env:
+          PAT_PUSH_TOKEN: ${{ secrets.PAT_PUSH_TOKEN }}
         run: |
-          git push https://x-access-token:${{ secrets.PAT_PUSH_TOKEN }}@github.com/Eshopbox-Enginnering/ai-codereviewer.git main
+          git remote add auth-origin https://x-access-token:${PAT_PUSH_TOKEN}@github.com/Eshopbox-Enginnering/ai-codereviewer.git
+          git push auth-origin main
