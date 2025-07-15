@@ -241,6 +241,7 @@ async function main() {
   //     comments
   //   );
   // }
+  console.log("✅ Running updated AI review script...");
   if (comments.length > 0) {
     console.log(`🟡 ${comments.length} AI comments added to PR.`);
     console.log("AI comments to be posted:");
