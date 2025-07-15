@@ -233,14 +233,34 @@ async function main() {
   });
 
   const comments = await analyzeCode(filteredDiff, prDetails);
+  // if (comments.length > 0) {
+  //   await createReviewComment(
+  //     prDetails.owner,
+  //     prDetails.repo,
+  //     prDetails.pull_number,
+  //     comments
+  //   );
+  // }
   if (comments.length > 0) {
+    console.log(`🟡 ${comments.length} AI comments added to PR.`);
+    console.log("AI comments to be posted:");
+    comments.forEach(c =>
+      console.log(`- ${c.path}#L${c.line}: ${c.body.slice(0, 100)}...`)
+    );
     await createReviewComment(
       prDetails.owner,
       prDetails.repo,
       prDetails.pull_number,
       comments
     );
+  
+    // Fail the job so PR can't be merged until reviewed
+    core.setFailed(`${comments.length} AI review issues found.`);
+    process.exit(1);
+  } else {
+    console.log("✅ No issues found by AI.");
   }
+  
 }
 
 main().catch((error) => {
