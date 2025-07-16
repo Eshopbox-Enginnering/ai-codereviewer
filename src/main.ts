@@ -11,7 +11,6 @@ const OPENAI_API_KEY: string = core.getInput("OPENAI_API_KEY");
 const OPENAI_API_MODEL: string = core.getInput("OPENAI_API_MODEL");
 
 const octokit = new Octokit({ auth: GITHUB_TOKEN });
-
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 interface PRDetails {
@@ -55,7 +54,7 @@ function getPositionFromChunk(chunk: Chunk, lineNumber: number): number | null {
   let position = 0;
   for (const change of chunk.changes) {
     if (change.type !== "del") position++;
-    // @ts-expect-error - parse-diff type doesn't define ln
+    // @ts-expect-error
     if (change.ln === Number(lineNumber) && change.type === "add") {
       return position;
     }
@@ -92,7 +91,7 @@ async function analyzeCode(
 function createPrompt(file: File, chunk: Chunk, prDetails: PRDetails): string {
   const changesText = chunk.changes
     .map((c) => {
-      // @ts-expect-error - ln or ln2 comes from parser
+      // @ts-expect-error
       const line = c.ln ?? c.ln2 ?? "";
       return `${line} ${c.content}`;
     })
@@ -132,11 +131,19 @@ async function getAIResponse(prompt: string): Promise<Array<{ lineNumber: string
       messages: [{ role: "system", content: prompt }],
     });
 
-    const raw = response.choices[0].message?.content?.trim() || "{}";
-    const cleaned = raw.replace(/^```json\\s*/i, "").replace(/^```\\s*/i, "").replace(/\\s*```$/, "");
-    return JSON.parse(cleaned).reviews;
+    let raw = response.choices[0].message?.content?.trim() || "{}";
+
+    // ✅ Sanitize markdown code blocks from AI response
+    if (raw.startsWith("```json")) {
+      raw = raw.replace(/^```json/, "").replace(/```$/, "").trim();
+    } else if (raw.startsWith("```")) {
+      raw = raw.replace(/^```/, "").replace(/```$/, "").trim();
+    }
+
+    const parsed = JSON.parse(raw);
+    return parsed.reviews ?? [];
   } catch (error) {
-    console.error("Error parsing AI response:", error);
+    console.error("❌ Error parsing AI response:", error);
     return null;
   }
 }
@@ -257,8 +264,6 @@ async function main() {
   } else {
     console.log("✅ No issues found by AI.");
   }
-
-
 }
 
 main().catch((error) => {
