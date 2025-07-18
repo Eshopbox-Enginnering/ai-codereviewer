@@ -114,15 +114,6 @@ async function getAIResponse(prompt: string): Promise<Array<{
   lineNumber: string;
   reviewComment: string;
 }> | null> {
-  const queryConfig = {
-    model: OPENAI_API_MODEL,
-    temperature: 0.2,
-    max_tokens: 700,
-    top_p: 1,
-    frequency_penalty: 0,
-    presence_penalty: 0,
-  };
-
   try {
     const response = await openai.chat.completions.create({
       model: OPENAI_API_MODEL,
@@ -143,8 +134,6 @@ async function getAIResponse(prompt: string): Promise<Array<{
     });
 
     let res = response.choices[0].message?.content?.trim() || "{}";
-
-    // ✅ Clean up code block formatting if present
     res = res.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
 
     const parsed = JSON.parse(res);
@@ -257,13 +246,13 @@ async function main() {
     );
 
     core.setFailed(`${comments.length} AI review issues found.`);
-    process.exit(1);
+    throw new Error("❌ PR check failed due to AI code review comments.");
   } else {
     console.log("✅ No issues found by AI.");
   }
 }
 
 main().catch((error) => {
-  console.error("Error:", error);
-  process.exit(1);
+  console.error("❌ Fatal error in main():", error);
+  core.setFailed(error.message || "Unexpected error");
 });
