@@ -59,8 +59,8 @@ async function getDiff(
 async function analyzeCode(
   parsedDiff: File[],
   prDetails: PRDetails
-): Promise<Array<{ body: string; path: string; position: number }>> {
-  const comments: Array<{ body: string; path: string; position: number }> = [];
+): Promise<Array<{ body: string; path: string; line: number }>> {
+  const comments: Array<{ body: string; path: string; line: number }> = [];
 
   for (const file of parsedDiff) {
     if (file.to === "/dev/null") continue;
@@ -144,24 +144,6 @@ async function getAIResponse(prompt: string): Promise<Array<{
   }
 }
 
-// function createComment(
-//   file: File,
-//   chunk: Chunk,
-//   aiResponses: Array<{
-//     lineNumber: string;
-//     reviewComment: string;
-//   }>
-// ): Array<{ body: string; path: string; line: number }> {
-//   return aiResponses.flatMap((aiResponse) => {
-//     if (!file.to) return [];
-//     return {
-//       body: aiResponse.reviewComment,
-//       path: file.to,
-//       line: Number(aiResponse.lineNumber),
-//     };
-//   });
-// }
-
 function createComment(
   file: File,
   chunk: Chunk,
@@ -169,28 +151,13 @@ function createComment(
     lineNumber: string;
     reviewComment: string;
   }>
-): Array<{ body: string; path: string; position: number }> {
+): Array<{ body: string; path: string; line: number }> {
   return aiResponses.flatMap((aiResponse) => {
     if (!file.to) return [];
-
-    const targetLine = Number(aiResponse.lineNumber);
-
-    // Cast to 'any' to bypass TS complaints
-    const change = (chunk.changes as any[]).find((c) => {
-      return c.ln === targetLine || c.ln2 === targetLine;
-    });
-
-    if (!change || change.type === "del" || change.position === undefined) {
-      console.warn(
-        `⚠️ Skipping comment: no matching diff line or position found for line ${targetLine} in ${file.to}`
-      );
-      return [];
-    }
-
     return {
       body: aiResponse.reviewComment,
       path: file.to,
-      position: change.position,
+      line: Number(aiResponse.lineNumber),
     };
   });
 }
@@ -199,7 +166,7 @@ async function createReviewComment(
   owner: string,
   repo: string,
   pull_number: number,
-  comments: Array<{ body: string; path: string; position: number }>
+  comments: Array<{ body: string; path: string; line: number }>
 ): Promise<void> {
   await octokit.pulls.createReview({
     owner,
@@ -268,7 +235,7 @@ async function main() {
     console.log(`🟡 ${comments.length} AI comments added to PR.`);
     console.log("AI comments to be posted:");
     comments.forEach((c) =>
-      console.log(`- ${c.path}#L${c.position}: ${c.body.slice(0, 100)}...`)
+      console.log(`- ${c.path}#L${c.line}: ${c.body.slice(0, 100)}...`)
     );
 
     await createReviewComment(
