@@ -103,8 +103,7 @@ Git diff to review:
 \`\`\`diff
 ${chunk.content}
 ${chunk.changes
-  // @ts-expect-error - ln and ln2 exists where needed
-  .map((c) => `${c.ln ? c.ln : c.ln2} ${c.content}`)
+  .map((c: any) => `${c.ln ?? c.ln2} ${c.content}`)
   .join("\n")}
 \`\`\`
 `;
@@ -144,24 +143,6 @@ async function getAIResponse(prompt: string): Promise<Array<{
   }
 }
 
-// function createComment(
-//   file: File,
-//   chunk: Chunk,
-//   aiResponses: Array<{
-//     lineNumber: string;
-//     reviewComment: string;
-//   }>
-// ): Array<{ body: string; path: string; line: number }> {
-//   return aiResponses.flatMap((aiResponse) => {
-//     if (!file.to) return [];
-//     return {
-//       body: aiResponse.reviewComment,
-//       path: file.to,
-//       line: Number(aiResponse.lineNumber),
-//     };
-//   });
-// }
-
 function createComment(
   file: File,
   chunk: Chunk,
@@ -175,15 +156,12 @@ function createComment(
 
     const targetLine = Number(aiResponse.lineNumber);
 
-    // Cast to 'any' to bypass TS complaints
     const change = (chunk.changes as any[]).find((c) => {
-      return c.ln === targetLine || c.ln2 === targetLine;
+      return (c.ln === targetLine || c.ln2 === targetLine) && c.position !== undefined;
     });
 
-    if (!change || change.type === "del" || change.position === undefined) {
-      console.warn(
-        `⚠️ Skipping comment: no matching diff line or position found for line ${targetLine} in ${file.to}`
-      );
+    if (!change || change.type === "del") {
+      console.warn(`⚠️ Skipping comment: no valid diff line or position for line ${targetLine} in ${file.to}`);
       return [];
     }
 
@@ -201,6 +179,11 @@ async function createReviewComment(
   pull_number: number,
   comments: Array<{ body: string; path: string; position: number }>
 ): Promise<void> {
+  console.log("🧪 Final comments to be posted:");
+  comments.forEach((c) => {
+    console.log(JSON.stringify(c, null, 2));
+  });
+
   await octokit.pulls.createReview({
     owner,
     repo,
@@ -265,11 +248,7 @@ async function main() {
 
   console.log("✅ Running updated AI review script...");
   if (comments.length > 0) {
-    console.log(`🟡 ${comments.length} AI comments added to PR.`);
-    console.log("AI comments to be posted:");
-    comments.forEach((c) =>
-      console.log(`- ${c.path}#L${c.position}: ${c.body.slice(0, 100)}...`)
-    );
+    console.log(`🟡 ${comments.length} AI comments ready to post.`);
 
     await createReviewComment(
       prDetails.owner,
