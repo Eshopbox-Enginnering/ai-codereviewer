@@ -9,6 +9,7 @@ export interface ReviewServiceConfig {
   approveReviews: boolean;
   projectContext?: string;
   contextFiles?: string[];
+  customInstructions?: string;
 }
 
 export class ReviewService {
@@ -24,7 +25,8 @@ export class ReviewService {
       maxComments: config.maxComments || 0,
       approveReviews: config.approveReviews,
       projectContext: config.projectContext,
-      contextFiles: config.contextFiles || ['package.json', 'README.md']
+      contextFiles: config.contextFiles || ['package.json', 'README.md'],
+      customInstructions: config.customInstructions
     };
   }
 
@@ -34,6 +36,16 @@ export class ReviewService {
     // Get PR details
     const prDetails = await this.githubService.getPRDetails(prNumber);
     core.info(`PR title: ${prDetails.title}`);
+
+    if (await this.githubService.hasReviewForCommit(prNumber, prDetails.head)) {
+      core.info('Skipping review - commit already reviewed');
+      return {
+        summary: 'Commit already reviewed',
+        lineComments: [],
+        suggestedAction: 'COMMENT',
+        confidence: 1
+      };
+    }
 
     // Get modified files from diff
     const lastReviewedCommit = await this.githubService.getLastReviewedCommit(prNumber);
@@ -65,24 +77,63 @@ export class ReviewService {
     // Get repository context (now using configured files)
     const contextFiles = await this.getRepositoryContext();
 
-    // Perform AI review
-    const review = await this.aiProvider.review({
-      files: filesWithContent,
-      contextFiles,
-      previousReviews,
-      pullRequest: {
-        title: prDetails.title,
-        description: prDetails.description,
-        base: prDetails.base,
-        head: prDetails.head,
-      },
-      context: {
-        repository: process.env.GITHUB_REPOSITORY ?? '',
-        owner: process.env.GITHUB_REPOSITORY_OWNER ?? '',
-        projectContext: this.config.projectContext,
-        isUpdate,
-      },
-    });
+    const MAX_CHARS = 15000;
+    const chunks: typeof filesWithContent[] = [];
+    let current: typeof filesWithContent = [];
+    let len = 0;
+    for (const file of filesWithContent) {
+      const size = JSON.stringify(file).length;
+      if (len + size > MAX_CHARS && current.length > 0) {
+        chunks.push(current);
+        current = [];
+        len = 0;
+      }
+      current.push(file);
+      len += size;
+    }
+    if (current.length > 0) chunks.push(current);
+
+    let combinedSummary = '';
+    let allComments: ReviewResponse['lineComments'] = [];
+    let action: ReviewResponse['suggestedAction'] = 'COMMENT';
+
+    for (const chunk of chunks) {
+      const res = await this.aiProvider.review({
+        files: chunk,
+        contextFiles,
+        previousReviews,
+        pullRequest: {
+          title: prDetails.title,
+          description: prDetails.description,
+          base: prDetails.base,
+          head: prDetails.head,
+        },
+        context: {
+          repository: process.env.GITHUB_REPOSITORY ?? '',
+          owner: process.env.GITHUB_REPOSITORY_OWNER ?? '',
+          projectContext: this.config.projectContext,
+          isUpdate,
+          customInstructions: this.config.customInstructions,
+        },
+      });
+
+      combinedSummary += `${res.summary}\n\n`;
+      if (res.lineComments) {
+        allComments = [...(allComments || []), ...res.lineComments];
+      }
+      if (res.suggestedAction === 'REQUEST_CHANGES') {
+        action = 'REQUEST_CHANGES';
+      } else if (res.suggestedAction === 'APPROVE' && action !== 'REQUEST_CHANGES') {
+        action = 'APPROVE';
+      }
+    }
+
+    const review: ReviewResponse = {
+      summary: combinedSummary.trim(),
+      lineComments: allComments,
+      suggestedAction: action,
+      confidence: 1,
+    };
 
     // Add model name to summary
     const modelInfo = `_Code review performed by \`${process.env.INPUT_AI_PROVIDER?.toUpperCase() || 'AI'} - ${process.env.INPUT_AI_MODEL}\`._`;
@@ -94,6 +145,8 @@ export class ReviewService {
       lineComments: this.config.maxComments > 0 ? review.lineComments?.slice(0, this.config.maxComments) : review.lineComments,
       suggestedAction: this.normalizeReviewEvent(review.suggestedAction),
     });
+
+    await this.githubService.addLabel(prNumber, 'ai-reviewed');
 
     return review;
   }

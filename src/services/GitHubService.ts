@@ -69,7 +69,7 @@ export class GitHubService {
           path: comment.path,
           side: 'RIGHT', // For new file version
           line: comment.line, // The actual line number
-          body: comment.comment
+          body: `[AI] ${comment.comment}`
         };
       } catch (error) {
         core.warning(`Skipping comment for ${comment.path}:${comment.line} - ${error}`);
@@ -104,6 +104,28 @@ export class GitHubService {
         comments: [],
         event: suggestedAction.toUpperCase() as 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT'
       });
+    }
+  }
+
+  async hasReviewForCommit(prNumber: number, commit: string): Promise<boolean> {
+    const { data: reviews } = await this.octokit.pulls.listReviews({
+      owner: this.owner,
+      repo: this.repo,
+      pull_number: prNumber,
+    });
+    return reviews.some(r => r.user?.login === 'github-actions[bot]' && r.commit_id === commit);
+  }
+
+  async addLabel(prNumber: number, label: string) {
+    try {
+      await this.octokit.issues.addLabels({
+        owner: this.owner,
+        repo: this.repo,
+        issue_number: prNumber,
+        labels: [label]
+      });
+    } catch (err) {
+      core.warning(`Failed to add label ${label}: ${err}`);
     }
   }
 

@@ -58,6 +58,7 @@ jobs:
           PROJECT_CONTEXT: "This is a Node.js TypeScript project"
           CONTEXT_FILES: "package.json,README.md"
           EXCLUDE_PATTERNS: "**/*.lock,**/*.json,**/*.md"
+          CUSTOM_INSTRUCTIONS: "Follow Angular best practices"
 ```
 
 ## Configuration
@@ -73,6 +74,7 @@ jobs:
 | `PROJECT_CONTEXT` | Project context for better reviews | `""` |
 | `CONTEXT_FILES` | Files to include in review (comma-separated) | `"package.json,README.md"` |
 | `EXCLUDE_PATTERNS` | Files to exclude (glob patterns, comma-separated) | `"**/*.lock,**/*.json,**/*.md"` |
+| `CUSTOM_INSTRUCTIONS` | Extra guidelines for the AI reviewer | `""` |
 
 ### Supported Models
 
