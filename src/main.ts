@@ -10,6 +10,7 @@ import { readFileSync } from 'fs';
 async function main() {
   try {
     // Get inputs
+    // Test code
     const provider = core.getInput('AI_PROVIDER');
     const model = core.getInput('AI_MODEL');
     const apiKey = core.getInput('AI_API_KEY');
