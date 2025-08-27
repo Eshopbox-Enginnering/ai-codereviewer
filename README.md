@@ -94,10 +94,10 @@ yarn test
 yarn package
 
 # Generate test PR payload (for e2e testing)
-yarn generate-pr <owner> <repo> <pr_number>
+yarn generate-pr-payload <owner> <repo> <pr_number>
 
 # Run end-to-end tests
-yarn test:e2e <repo> <pr_number>
+yarn test:e2e <owner> <repo> <pr_number>
 ```
 
 ### Testing Locally
@@ -114,12 +114,12 @@ AI_MODEL=your_preferred_model
 
 2. Generate a test PR payload:
 ```bash
-yarn generate-pr your-org your-repo 123
+yarn generate-pr-payload <owner> <repo> 123
 ```
 
 3. Run the e2e test:
 ```bash
-yarn test:e2e your-repo 123
+yarn test:e2e <owner> <repo> 123
 ```
 
 Note: Make sure you have write access to the repository you're testing with.
