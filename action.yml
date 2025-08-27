@@ -38,6 +38,9 @@ inputs:
     description: "Files to exclude (glob patterns)"
     required: false
     default: "**/*.lock,**/*.json,**/*.md"
+  CUSTOM_INSTRUCTIONS:
+    description: "Additional instructions for the AI reviewer"
+    required: false
 runs:
   using: "node20"
   main: "dist/index.js"

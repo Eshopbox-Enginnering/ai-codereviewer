@@ -67,6 +67,7 @@ export class GeminiProvider implements AIProvider {
     return `
       ${baseCodeReviewPrompt}
       ${isUpdate ? updateReviewPrompt : ''}
+      ${request.context.customInstructions || ''}
     `;
   }
 

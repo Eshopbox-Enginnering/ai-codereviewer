@@ -37,6 +37,7 @@ export interface ReviewRequest {
     owner: string;
     projectContext?: string;
     isUpdate?: boolean;
+    customInstructions?: string;
   };
 }
 

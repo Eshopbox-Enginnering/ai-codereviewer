@@ -58,6 +58,9 @@ jest.mock('@octokit/rest', () => ({
           encoding: 'base64'
         }
       })
+    },
+    issues: {
+      addLabels: jest.fn().mockResolvedValue({})
     }
   }))
 }));

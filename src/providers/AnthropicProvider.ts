@@ -65,6 +65,7 @@ export class AnthropicProvider implements AIProvider {
     return `
       ${baseCodeReviewPrompt}
       ${isUpdate ? updateReviewPrompt : ''}
+      ${request.context.customInstructions || ''}
     `;
   }
 

@@ -61,6 +61,7 @@ export class OpenAIProvider implements AIProvider {
     return `
       ${baseCodeReviewPrompt}
       ${isUpdate ? updateReviewPrompt : ''}
+      ${request.context.customInstructions || ''}
     `;
   }
 
